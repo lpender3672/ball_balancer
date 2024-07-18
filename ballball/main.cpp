@@ -33,13 +33,23 @@ int main(int argc, char *argv[])
 {
 
     stdio_init_all();
+
+    gpio_init(25);
+    gpio_set_dir(25, GPIO_OUT);
+    gpio_put(25, 1);
     
     irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_interrupt_handler);
     irq_set_enabled(PWM_IRQ_WRAP, true);
 
     sleep_ms(1000);
 
-    servos[2].set(30);
+    for (int j=90; j>180; j--) {
+        for (int i=0; i<3; i++) {
+        servos[i].set(j);
+        }
+        sleep_ms(1000);
+    }
+    
 
     printf("Hello, World!\n");
 
