@@ -20,12 +20,12 @@ private:
     uint _pwm_slice;
 
     uint _pwm_max = 1000;
-    uint _pwm_min = 1200;
+    uint _pwm_min = 500;
     uint _pwm_value = 0;
 
     uint _pwm_freq = 50;
     uint _pwm_wrap = 10000;
 
-    int _angle_min = 0;
-    int _angle_max = 180;
+    int _angle_min = 50;
+    int _angle_max = -30;
 };
