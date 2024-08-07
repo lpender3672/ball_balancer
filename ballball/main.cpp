@@ -73,7 +73,7 @@ void pwm_interrupt_handler() {
 float x[3] = {0 , 60 * sqrt(3)/2, - 60 * sqrt(3)/2};
 float y[3] = {60, -30, -30};
 
-void set_servo_angle(float phi, float theta) {
+void set_servo_angle_phi_theta(float phi, float theta) {
 
     if (theta < -30) {
         theta = -30;
@@ -101,6 +101,42 @@ void set_servo_angle(float phi, float theta) {
             servos[i].set(angle);
     }
 }
+
+void set_servo_angle_alpha_beta(float alpha, float beta) {
+
+    if (alpha < -30) {
+        alpha = -30;
+    } else if (alpha > 30) {
+        alpha = 30;
+    }
+
+    if (beta < -30) {
+        beta = -30;
+    } else if (beta > 30) {
+        beta = 30;
+    }
+
+    for (int i=0; i<3; i++) {
+
+        a = sin(alpha * 3.1415926 / 180) * cos(beta * 3.1415926 / 180);
+        b = cos(alpha * 3.1415926 / 180) * sin(beta * 3.1415926 / 180);
+        c = cos(alpha * 3.1415926 / 180) * cos(beta * 3.1415926 / 180);
+
+        float z = - (1 / c) * ( x[i] * a + y[i] * b );
+        float angle = asin(z / 70) * 180 / 3.1415926;
+
+        printf("angle: %f\n", angle);
+
+        if (angle < -25) {
+            angle = -25;
+        } else if (angle > 45) {
+            angle = 45;
+        }
+
+        servos[i].set(angle);
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
