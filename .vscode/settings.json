@@ -49,7 +49,8 @@
         "irq.h": "c",
         "pwm.h": "c",
         "set": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "xiosbase": "cpp"
     },
     "cmake.buildBeforeRun": true,
     "cortex-debug.openocdPath": "C:/Program Files (x86)/OpenOCD-20231002-0.12.0/bin/openocd.exe"

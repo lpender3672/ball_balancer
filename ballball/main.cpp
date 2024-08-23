@@ -8,47 +8,14 @@
 #include "hardware/i2c.h"
 #include "hardware/pwm.h"
 #include "hardware/irq.h"
+#include "hardware/uart.h"
 
 #include "servo.h"
 
-#include "pico/cyw43_arch.h"
-#include "pico/stdlib.h"
-
-#include "lwip/pbuf.h"
-#include "lwip/tcp.h"
-
-#include "dhcpserver.h"
-#include "dnsserver.h"
-
-#define TCP_PORT 80
-#define DEBUG_printf printf
-#define POLL_TIME_S 5
-#define HTTP_GET "GET"
-#define HTTP_RESPONSE_HEADERS "HTTP/1.1 %d OK\nContent-Length: %d\nContent-Type: text/html; charset=utf-8\nConnection: close\n\n"
-#define LED_TEST_BODY "<html><body><h1>Hello from Pico W.</h1><p>Led is %s</p><p><a href=\"?led=%d\">Turn led %s</a></body></html>"
-#define LED_PARAM "led=%d"
-#define LED_TEST "/ledtest"
-#define LED_GPIO 0
-#define HTTP_RESPONSE_REDIRECT "HTTP/1.1 302 Redirect\nLocation: http://%s" LED_TEST "\n\n"
-
-typedef struct TCP_SERVER_T_ {
-    struct tcp_pcb *server_pcb;
-    bool complete;
-    ip_addr_t gw;
-    async_context_t *context;
-} TCP_SERVER_T;
-
-typedef struct TCP_CONNECT_STATE_T_ {
-    struct tcp_pcb *pcb;
-    int sent_len;
-    char headers[128];
-    char result[256];
-    int header_len;
-    int result_len;
-    ip_addr_t *gw;
-} TCP_CONNECT_STATE_T;
+#define MAX_COMMAND_LENGTH 64
 
 Servo servos[3] = {Servo(8), Servo(10), Servo(12)};
+
 
 void pwm_interrupt_handler() {
     // set pwm value on pwm wrap finish
@@ -70,8 +37,8 @@ void pwm_interrupt_handler() {
     }
 }
 
-float x[3] = {0 , 60 * sqrt(3)/2, - 60 * sqrt(3)/2};
-float y[3] = {60, -30, -30};
+float x[3] = {0 , 80 * sqrt(3)/2, - 80 * sqrt(3)/2};
+float y[3] = {-80, 40, 40};
 
 void set_servo_angle_phi_theta(float phi, float theta) {
 
@@ -118,6 +85,7 @@ void set_servo_angle_alpha_beta(float alpha, float beta) {
 
     for (int i=0; i<3; i++) {
 
+        float a, b, c;
         a = sin(alpha * 3.1415926 / 180) * cos(beta * 3.1415926 / 180);
         b = cos(alpha * 3.1415926 / 180) * sin(beta * 3.1415926 / 180);
         c = cos(alpha * 3.1415926 / 180) * cos(beta * 3.1415926 / 180);
@@ -137,47 +105,49 @@ void set_servo_angle_alpha_beta(float alpha, float beta) {
     }
 }
 
+void parse_command(const char* command) {
+    float a_value = 0, b_value = 0;
+    char *a_str = strstr(command, "A");
+    char *b_str = strstr(command, "B");
+    
+    if (a_str && b_str) {
+        a_value = strtof(a_str + 1, NULL);
+        b_value = strtof(b_str + 1, NULL);
+        printf("Received: A=%f B=%f\n", a_value, b_value);
+        set_servo_angle_alpha_beta(a_value, b_value);
+    } else {
+        printf("Invalid command format\n");
+    }
+}
 
-int main(int argc, char *argv[])
-{
-
+int main() {
     stdio_init_all();
 
-    servos[0].Calibrate(980, 590);
-    servos[1].Calibrate(1090, 580);
-    servos[2].Calibrate(920, 580);
-
-
-    /*
-    if (cyw43_arch_init()) {
-        return -1; 
-    }
-
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
-    sleep_ms(1000);
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
-    sleep_ms(1000);
-    */
+    servos[0].Calibrate(1000, 560);
+    servos[1].Calibrate(1180, 650);
+    servos[2].Calibrate(1020, 720);
 
     irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_interrupt_handler);
     irq_set_enabled(PWM_IRQ_WRAP, true);
 
-    float phi, theta;
-    phi = 0;
-    theta = 10;
+    printf("USB Serial Command Parser Ready\n");
 
-    while (true) {
+    char command_buffer[MAX_COMMAND_LENGTH];
+    int buffer_index = 0;
 
-        set_servo_angle(phi, theta);
-        sleep_ms(10);
-
-        phi += 1;
-        if (phi > 360) {
-            phi = 0;
+    while (1) {
+        int c = getchar_timeout_us(0);
+        if (c != PICO_ERROR_TIMEOUT) {
+            if (c == '\n' || c == '\r') {
+                command_buffer[buffer_index] = '\0';  // Null-terminate the string
+                parse_command(command_buffer);
+                buffer_index = 0;  // Reset buffer
+            } else if (buffer_index < MAX_COMMAND_LENGTH - 1) {
+                command_buffer[buffer_index++] = c;
+            }
         }
+        // You can add other non-blocking tasks here
     }
-
-    printf("Hello, World!\n");
 
     return 0;
 }

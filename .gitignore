@@ -1,4 +1,7 @@
 
+calibration_images/
+
+
 .idea
 _deps
 cmake-*
