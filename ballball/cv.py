@@ -59,6 +59,9 @@ qr = cv2.QRCodeDetector()
 
 cmtx, dist = np.load("calibration.npy", allow_pickle=True)
 
+# target updates per second is 30
+ups = 30
+
 def undistort(frame):
     h,  w = frame.shape[:2]
     alpha = 0.5
@@ -78,6 +81,9 @@ camera_angle_rel_plate = []
 time_last = None
 
 centersss = []
+
+start_time = time.time()
+last_update_time = start_time
 
 while True:
 
@@ -224,7 +230,14 @@ while True:
     cv2.imshow("Mask", mask)
     cv2.imshow("Result", res)
 
-    key = cv2.waitKey(1) & 0xFF
+    time_now = time.time()
+    compute_time = time_now - last_update_time
+    time_to_sleep = 1 / ups - compute_time
+    if time_to_sleep < 0:
+        print(f"Warning running behind at {1/compute_time:.2f} updates per second")
+        key = cv2.waitKey(1) & 0xFF
+    else:
+        key = cv2.waitKey(1000 * time_to_sleep) & 0xFF
 
     # quit
     if key == ord("q"):
