@@ -1,6 +1,6 @@
 
 calibration_images/
-
+.vscode/
 
 .idea
 _deps
